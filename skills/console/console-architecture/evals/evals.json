@@ -1,0 +1,195 @@
+{
+  "skill_name": "console-architecture",
+  "eval_spec_version": "1.0",
+  "description": "Checks that the agent uses **design-decision and project-structure** context for **Dataverse Console**: correct layering (React \u2192 client services \u2192 Fastify `/api/*` \u2192 controllers \u2192 services), right upstream (K8s CRDs, GitLab, Snowflake, Atlan), **Snowflake use-case `LocalCache`** (TTL vs **Snowflake update cadence**) vs HTTP **`Cache-Control`**, **Snowflake auth split**, caching, and **no fetch in UI components**.",
+  "evals": [
+    {
+      "id": 0,
+      "name": "new-feature-workflow",
+      "prompt": "\u201cWe\u2019re adding a new Console screen that shows data product health from Snowflake. Where should the code live in the Console codebase?\u201d",
+      "expected_output": {
+        "scenario_ref": "S1 \u2014 New feature layering",
+        "pillars": {
+          "outcome": {
+            "pass_signals": [
+              "Names **source of truth** (here: Snowflake tables/metrics vs CRDs/GitLab as appropriate).",
+              "Server: **service** under `src/server/services/` (or `common/snowflake/` patterns); **routes** under `src/server/router/api/` registered in `api.router.js`.",
+              "**Client service** + **Redux thunk**; components **select from store** \u2014 **not** `fetch` inside UI components."
+            ]
+          },
+          "process": {
+            "pass_signals": [
+              "Mentions **controllers \u2192 services only** (no direct external calls in controllers)."
+            ]
+          },
+          "style": {
+            "pass_signals": [
+              "Uses **Console** / **Dataverse Console** naming for the product and codebase."
+            ]
+          },
+          "efficiency": {
+            "pass_signals": [
+              "Points to **references** (`data-sources`, `backend-conventions`, `frontend-conventions`) or **Where to look** table without pasting the whole repo tree."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 1,
+      "name": "trace-api-to-system",
+      "prompt": "\u201cWhich service backs product listing from Kubernetes CRDs in the Console API?\u201d",
+      "expected_output": {
+        "scenario_ref": "S2 \u2014 Trace data path",
+        "pillars": {
+          "outcome": {
+            "pass_signals": [
+              "Identifies **Kubernetes CRDs** as product inventory; **`products.service.js`** and/or **`k8s.service.js`**."
+            ]
+          },
+          "process": {
+            "pass_signals": [
+              "Mentions route mounting via **`api.router.js`** / API surface under **`/api/*`** when relevant."
+            ]
+          },
+          "style": {
+            "pass_signals": [
+              "Distinguishes **K8s product inventory** from **GitLab dataproduct-config** (declarative YAML) when helpful."
+            ]
+          },
+          "efficiency": {
+            "pass_signals": [
+              "Single clear answer; optional pointer to **`references/data-sources.md`**."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "snowflake-auth-modes",
+      "prompt": "\u201cPathfinder in Console uses the user\u2019s Snowflake session. Is that the same auth path as the cost and agent-health APIs?\u201d",
+      "expected_output": {
+        "scenario_ref": "S3 \u2014 Snowflake auth split",
+        "pillars": {
+          "outcome": {
+            "pass_signals": [
+              "**Different**: visualization/cost/agent-health use **service account JWT pools** per environment; **Pathfinder** uses **end-user OAuth** via SSO (`refreshSSOToken` or equivalent wording)."
+            ]
+          },
+          "process": {
+            "pass_signals": [
+              "Notes **different security and failure modes** or equivalent caution."
+            ]
+          },
+          "style": {
+            "pass_signals": [
+              "References **`snowflake-service.js`** / pathfinder service path or skill \u201cGotchas\u201d language without inventing new auth mechanisms."
+            ]
+          },
+          "efficiency": {
+            "pass_signals": [
+              "Does not conflate the two into one \u201cSnowflake JWT\u201d story without the split."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "offline-demo-serve-json",
+      "prompt": "\u201cWhat does `SERVE_JSON` change in Console behavior for products?\u201d",
+      "expected_output": {
+        "scenario_ref": "S4 \u2014 Offline / demo",
+        "pillars": {
+          "outcome": {
+            "pass_signals": [
+              "Serves **fixture JSON** instead of **live Kubernetes/Snowflake** for relevant paths (e.g. `products.service.js` / related)."
+            ]
+          },
+          "process": {
+            "pass_signals": [
+              "Explains **when to use** (demo, offline dev) without telling the user to commit secrets."
+            ]
+          },
+          "efficiency": {
+            "pass_signals": [
+              "Concise; ties to skill **Gotchas**."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "name": "negative-not-console-repo",
+      "prompt": "\u201cAdd a Fastify plugin to my standalone side project\u2019s API.\u201d",
+      "expected_output": {
+        "scenario_ref": "S5 \u2014 Negative routing",
+        "pillars": {
+          "outcome": {
+            "pass_signals": [
+              "Does **not** apply **Dataverse Console** repo layout or conventions without confirmation; gives **generic Fastify** guidance or asks for repo context."
+            ]
+          },
+          "process": {
+            "pass_signals": [
+              "Does not invent **Console** `src/server/...` paths unless user confirms that repository."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "name": "handoff-design-and-docs",
+      "prompt": "\u201cI need exact microcopy and spacing rules for a new Console modal.\u201d",
+      "expected_output": {
+        "scenario_ref": "S6 \u2014 When skill is not enough",
+        "pillars": {
+          "outcome": {
+            "pass_signals": [
+              "Points to **`docs/design-rules.md`** and/or **PatternFly** skills; may still give high-level Console stack reminder."
+            ]
+          },
+          "process": {
+            "pass_signals": [
+              "Acknowledges **console-architecture** is **architecture / data flow**, not full UX spec."
+            ]
+          },
+          "efficiency": {
+            "pass_signals": [
+              "Does not pretend **`docs/API.md`** is always authoritative without **verify against routes** caveat when mentioned."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "name": "snowflake-use-case-server-cache",
+      "prompt": "\u201cHow does Console cache Snowflake data for the cost dashboard vs the product list?\u201d",
+      "expected_output": {
+        "scenario_ref": "S7 \u2014 Snowflake use-case cache",
+        "pillars": {
+          "outcome": {
+            "pass_signals": [
+              "**Use-case\u2013scoped** server cache: **`LocalCache`** in `cache.service.js` with **separate buckets/TTLs** (e.g. products vs **cost ops** vs health vs agent raw), env from **`config.js`**.",
+              "TTL / caching should align with **how often Snowflake data is updated** for each dataset (or says to **identify that cadence** when adding new Snowflake queries)."
+            ]
+          },
+          "process": {
+            "pass_signals": [
+              "Mentions **`CACHE_API`** = false forces refresh behavior (or equivalent); distinguishes **server `LocalCache`** from HTTP **`Cache-Control`**."
+            ]
+          },
+          "efficiency": {
+            "pass_signals": [
+              "Points to **SKILL.md** section or **`visualization`** / **`data-products`** controllers consuming `localCache` without reproducing full TTL tables."
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
